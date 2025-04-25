@@ -5,12 +5,21 @@ const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 // Define MVP categories and their Overpass tags
 const MVP_CATEGORIES = {
   supermarkets: '[shop=supermarket]',
+  convenience: '[shop=convenience]',
   pharmacies: '[amenity=pharmacy]',
   post_offices: '[amenity=post_office]',
   parks: '[leisure=park]',
   playgrounds: '[leisure=playground]',
   cafes: '[amenity=cafe]',
   restaurants: '[amenity=restaurant]',
+  pubs: '[amenity=pub]',
+  banks: '[amenity=bank]',
+  doctors: '[amenity=doctors]',
+  clinics: '[amenity=clinic]',
+  hospitals: '[amenity=hospital]',
+  dentists: '[amenity=dentist]',
+  police: '[amenity=police]',
+  fire_stations: '[amenity=fire_station]',
 };
 
 /**
@@ -24,9 +33,10 @@ function buildOverpassQuery(lat, lon, radius) {
   let queryParts = [];
   for (const key in MVP_CATEGORIES) {
     const tags = MVP_CATEGORIES[key];
-    queryParts.push(`node(around:${radius},${lat},${lon})${tags};`);
-    queryParts.push(`way(around:${radius},${lat},${lon})${tags};`);
-    queryParts.push(`relation(around:${radius},${lat},${lon})${tags};`);
+    const safeTags = tags.startsWith('[') && tags.endsWith(']') ? tags : `[${tags}]`; 
+    queryParts.push(`node(around:${radius},${lat},${lon})${safeTags};`);
+    queryParts.push(`way(around:${radius},${lat},${lon})${safeTags};`);
+    queryParts.push(`relation(around:${radius},${lat},${lon})${safeTags};`);
   }
 
   return `
@@ -65,61 +75,54 @@ async function queryOverpass(lat, lon, radius) {
 }
 
 /**
- * Parses the raw Overpass API JSON response into a structured object by category.
+ * Parses the raw Overpass API JSON response into a flat array of place objects.
  * @param {object} overpassData The raw JSON data from the Overpass API.
- * @returns {object} An object with keys for each category containing an array of places.
+ * @returns {Array<object>} An array containing place objects with id, type, lat, lon, and tags.
  */
 function parseOverpassResponse(overpassData) {
-  const results = {};
-  // Initialize results object with empty arrays for each category
-  for (const key in MVP_CATEGORIES) {
-    results[key] = [];
-  }
+  const allPlaces = []; // Initialize an empty array for all places
 
   if (!overpassData || !overpassData.elements) {
     console.warn('No elements found in Overpass response.');
-    return results; // Return empty structure
+    return allPlaces; // Return empty array
   }
 
   overpassData.elements.forEach(element => {
     const tags = element.tags;
-    if (!tags) return; // Skip elements without tags
-
-    const name = tags.name;
-    if (!name) return; // Skip elements without a name tag
+    // We still need tags, but maybe not necessarily a name for all types of places?
+    // Let's include elements even without a name for now, frontend can filter later.
+    if (!tags) return; 
 
     let lat, lon;
     if (element.type === 'node') {
       lat = element.lat;
       lon = element.lon;
-    } else if (element.center) { // For ways and relations with 'out center;'
+    } else if (element.center) { // For ways and relations
       lat = element.center.lat;
       lon = element.center.lon;
     }
 
-    if (lat === undefined || lon === undefined) return; // Skip if no coordinates found
-
-    // Determine the category based on tags
-    for (const key in MVP_CATEGORIES) {
-      const categoryTags = MVP_CATEGORIES[key]; // e.g., '[shop=supermarket]'
-      // Simple check: does the tag key (e.g., 'shop') exist in the element's tags?
-      // And does the tag value (e.g., 'supermarket') match?
-      // This needs refinement for combined tags or different tag keys (like leisure, amenity)
-      const match = categoryTags.match(/\[(\w+)=(\w+)\]/);
-      if (match && tags[match[1]] === match[2]) {
-        results[key].push({ name, lat, lon });
-        break; // Found category, no need to check others for this element
-      }
+    // Include if coordinates are valid
+    if (lat !== undefined && lon !== undefined) {
+      allPlaces.push({
+        id: element.id,
+        type: element.type,
+        lat: lat,
+        lon: lon,
+        tags: tags || {} // Include the full tags object, ensure it's an object
+      });
     }
   });
 
-  // Sort results alphabetically by name within each category
-  for (const key in results) {
-    results[key].sort((a, b) => a.name.localeCompare(b.name));
-  }
+  // Optional: Sort the flat array by name if needed, handling missing names
+  allPlaces.sort((a, b) => {
+      const nameA = a.tags.name || '';
+      const nameB = b.tags.name || '';
+      return nameA.localeCompare(nameB);
+  });
 
-  console.log('Overpass response parsed successfully.');
-  return results;
+  console.log(`Overpass response parsed successfully into ${allPlaces.length} places.`);
+  return allPlaces; // Return the flat array
 }
 
 module.exports = {

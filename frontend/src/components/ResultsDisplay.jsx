@@ -19,6 +19,12 @@ import LocationSection from './sections/LocationSection';
 import SummarySection from './sections/SummarySection';
 import PlacesSection from './sections/PlacesSection';
 import TransportSection from './sections/TransportSection'; // Import TransportSection
+import DemographicsSection from './sections/DemographicsSection'; // <-- Add import
+import EssentialsSection from './sections/EssentialsSection'; // <-- Import Essentials
+import CouncilSection from './sections/CouncilSection'; // <-- Import Council
+import HealthcareSection from './sections/HealthcareSection'; // <-- Import
+import EmergencyServicesSection from './sections/EmergencyServicesSection'; // <-- Import
+import PostOfficeSection from './sections/PostOfficeSection'; // <-- Import
 // Import other section placeholders later (e.g., EssentialsSection)
 
 function ResultsDisplay({ loading, error, data }) {
@@ -44,6 +50,9 @@ function ResultsDisplay({ loading, error, data }) {
 
   // --- Data Display State --- 
   const pdfFileName = `Neighbourhood_Guide_${data.postcode || 'Report'}.pdf`;
+
+  // --- Log the entire data object received ---
+  // console.log("ResultsDisplay received data:", data); // REMOVED
 
   return (
     <Box sx={{ mt: 4 }}> 
@@ -73,11 +82,56 @@ function ResultsDisplay({ loading, error, data }) {
       <Divider sx={{ mb: 3 }}/>
       <LocationSection coordinates={data.coordinates} />
       <Divider sx={{ mb: 3 }}/>
+      {/* Render Council Section if data exists */} 
+      {data.council && (
+        <>
+          <CouncilSection council={data.council} />
+          <Divider sx={{ mb: 3 }}/>
+        </>
+      )}
+      {/* Render Healthcare Section if data exists */} 
+      {data.healthcare && (
+        <>
+          <HealthcareSection healthcare={data.healthcare} />
+          <Divider sx={{ mb: 3 }}/>
+        </>
+      )}
+      {/* Render Emergency Services Section if data exists */} 
+      {data.emergency_services && (
+        <>
+          <EmergencyServicesSection emergency_services={data.emergency_services} />
+          <Divider sx={{ mb: 3 }}/>
+        </>
+      )}
+      {/* Render Post Office Section if data exists */} 
+      {data.post_office && (
+        <>
+          <PostOfficeSection post_office={data.post_office} />
+          <Divider sx={{ mb: 3 }}/>
+        </>
+      )}
+      {/* Render Demographics Section if data exists */} 
+      {data.demographics && (
+        <>
+          <DemographicsSection demographics={data.demographics} />
+          <Divider sx={{ mb: 3 }}/>
+        </>
+      )}
       <TransportSection transport={data.transport} />
       <Divider sx={{ mb: 3 }}/>
       <SummarySection summary={data.summary} />
       <Divider sx={{ mb: 3 }}/>
       <PlacesSection places={data.places} />
+      <Divider sx={{ mb: 3 }}/>
+      {/* Render Essentials Section if places data exists */}
+      {data.places && data.places.length > 0 && (
+        <>
+          {/* Add log here */}
+          {/* console.log("ResultsDisplay: Rendering EssentialsSection with places:", data.places) */} {/* REMOVED */}
+          <EssentialsSection places={data.places} />
+          <Divider sx={{ mb: 3 }}/>
+        </>
+      )}
       {/* Add other sections here later (Essentials, etc.) */}
       
     </Box>

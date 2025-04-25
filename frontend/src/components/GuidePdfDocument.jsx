@@ -1,145 +1,114 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, View, StyleSheet, Text } from '@react-pdf/renderer';
+import DemographicsSectionPdf from './pdfSections/DemographicsSectionPdf';
+import EssentialsSectionPdf from './pdfSections/EssentialsSectionPdf';
+import IntroductionSectionPdf from './pdfSections/IntroductionSectionPdf';
+import LocationSectionPdf from './pdfSections/LocationSectionPdf';
+import TransportSectionPdf from './pdfSections/TransportSectionPdf';
+import SummarySectionPdf from './pdfSections/SummarySectionPdf';
+import CouncilSectionPdf from './pdfSections/CouncilSectionPdf';
+import HealthcareSectionPdf from './pdfSections/HealthcareSectionPdf';
+import EmergencyServicesSectionPdf from './pdfSections/EmergencyServicesSectionPdf';
+import PostOfficeSectionPdf from './pdfSections/PostOfficeSectionPdf';
+import PlacesSectionPdf from './pdfSections/PlacesSectionPdf';
+import AreaSummarySectionPdf from './pdfSections/AreaSummarySectionPdf';
 
-// Restore original styles 
-const styles = StyleSheet.create({
-  page: {
-    flexDirection: 'column',
-    backgroundColor: '#FFFFFF',
-    padding: 30, 
-  },
-  section: { // Style for each logical section block
-    marginBottom: 15, // Add space between sections
-    paddingBottom: 10, // Padding within section
-    borderBottomWidth: 1,
-    borderBottomColor: '#cccccc',
-    borderBottomStyle: 'dashed',
-  },
-  lastSection: { // Remove bottom border for the last section
-    borderBottomWidth: 0,
-    marginBottom: 0,
-    paddingBottom: 0,
-  },
-  heading: { // Overall document heading
-    fontSize: 18,
-    marginBottom: 15,
-    textAlign: 'center',
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  subheading: { // Section headings
-    fontSize: 14,
-    marginBottom: 8, 
-    fontWeight: 'bold',
-    color: '#444444',
-  },
-  paragraph: {
-    fontSize: 11,
-    marginBottom: 5,
-    lineHeight: 1.4,
-    color: '#555555',
-  },
-  listItem: { 
-    fontSize: 10,
-    marginLeft: 10, 
-    marginBottom: 3,
-    color: '#555555',
-  },
-  categoryTitle: { 
-      fontSize: 12,
-      fontWeight: 'bold',
-      marginBottom: 4,
-      marginTop: 8,
-      color: '#444444',
-  },
-  italic: {
-      fontStyle: 'italic',
-      color: '#777777'
-  }
-});
+// Import shared styles and new components
+import { globalStyles } from '../styles/pdfStyles'; // Import global styles
+import HeaderPdf from './pdfSections/HeaderPdf';
+import FooterPdf from './pdfSections/FooterPdf';
 
-// Restore capitalize helper
-const capitalize = (s) => {
-  if (typeof s !== 'string') return ''
-  return s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-};
+// Styles are now minimal, mostly for page layout
+// const styles = StyleSheet.create({
+//   page: {
+//     flexDirection: 'column',
+//     backgroundColor: '#FFFFFF',
+//     padding: 30,
+//   },
+//   // This style is used to wrap the last section to prevent the default bottom border
+//   lastSectionWrapper: {
+//       borderBottomWidth: 0,
+//       marginBottom: 0,
+//       paddingBottom: 0,
+//       // Ensure section styles within components don't add unwanted borders/margins
+//   }
+// });
 
-// Create Document Component - Restoring sections and full content
+// Create Document Component
 function GuidePdfDocument({ data }) {
+  // Check if data exists at the beginning
   if (!data) {
+    // Use the new global page style for the error message
     return (
-      <Document><Page size="A4" style={styles.page}><View><Text>No data</Text></View></Page></Document>
+        <Document>
+            <Page size="A4" style={globalStyles.page}>
+                <HeaderPdf postcode="N/A" coordinates="N/A" recipientName="" />
+                <View style={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text>Guide data is unavailable.</Text>
+                </View>
+                <FooterPdf />
+            </Page>
+        </Document>
     );
   }
   
-  const places = data.places || {};
-  const categories = Object.keys(places);
+  // Extract necessary data, providing defaults
+  const placesArray = data.places || []; 
+  const { train_stations = [], bus_stops = [], tube_stations = [] } = data.transport || {};
   
-  // Personalized Intro Text
-  const welcomeMessage = data.recipientName 
-    ? `Welcome to ${data.postcode || 'the area'}, ${data.recipientName}!`
-    : `Welcome to ${data.postcode || 'the area'}!`;
+  // Slice for top 3 transport (can be done here or within TransportSectionPdf if preferred)
+  const nearest_train_stations = train_stations.slice(0, 3);
+  const nearest_bus_stops = bus_stops.slice(0, 3);
+  const nearest_tube_stations = tube_stations.slice(0, 3);
 
   return (
     <Document title={`Neighbourhood Guide - ${data.postcode}`}>
-      <Page size="A4" style={styles.page}>
-        
-        {/* Introduction Section */}
-        <View style={styles.section} wrap={false}> {/* wrap={false} prevents breaking page inside this small section */} 
-          <Text style={styles.heading}>Neighbourhood Guide: {data.postcode}</Text>
-          <Text style={styles.paragraph}>{welcomeMessage}</Text>
-          <Text style={[styles.paragraph, styles.italic]}>
-            This personalized guide aims to help you get acquainted with your new neighbourhood.
-          </Text>
-        </View>
+      {/* Apply global page style */}
+      <Page size="A4" style={globalStyles.page}>
+        {/* Add Header */}
+        <HeaderPdf
+          postcode={data.postcode}
+          coordinates={data.coordinates}
+          recipientName={data.recipientName}
+        />
 
-        {/* Location Section */}
-        <View style={styles.section}>
-          <Text style={styles.subheading}>Location</Text>
-          <Text style={styles.paragraph}>
-            Approximate Coordinates: {data.coordinates?.latitude?.toFixed(5) ?? 'N/A'}, {data.coordinates?.longitude?.toFixed(5) ?? 'N/A'}
-          </Text>
-          {/* Map Placeholder - Consider how to add this later */}
-          <Text style={[styles.paragraph, styles.italic]}>[Map Image Placeholder]</Text> 
-        </View>
+        {/* Main content area - allows footer to be at the bottom */}
+        <View style={{ flexGrow: 1 }}>
+          {/* Render all sections using their dedicated components */}
+          {/* Sections will need internal styling updates next */}
+          <IntroductionSectionPdf postcode={data.postcode} recipientName={data.recipientName} />
+          <LocationSectionPdf coordinates={data.coordinates} />
+          <CouncilSectionPdf council={data.council} />
+          <HealthcareSectionPdf healthcare={data.healthcare} />
+          <EmergencyServicesSectionPdf emergency_services={data.emergency_services} />
+          <PostOfficeSectionPdf post_office={data.post_office} />
+          
+          {/* Conditional Demographics Section */} 
+          {data.demographics && (
+              <DemographicsSectionPdf demographics={data.demographics} />
+          )}
+          
+          {/* Conditional Transport Section (Component handles internal check) */} 
+          <TransportSectionPdf 
+            nearest_tube_stations={nearest_tube_stations}
+            nearest_train_stations={nearest_train_stations}
+            nearest_bus_stops={nearest_bus_stops}
+          />
+          
+          <SummarySectionPdf summary={data.summary} />
+          <EssentialsSectionPdf places={placesArray} />
 
-        {/* Summary Section */}
-        <View style={styles.section}>
-          <Text style={styles.subheading}>Area Summary</Text>
-          <Text style={styles.paragraph}>
-            {data.summary || 'No summary available.'}
-          </Text>
-        </View>
+          {/* Nearby Places Section - Remove the wrapper */}
+          <PlacesSectionPdf places={placesArray} />
 
-        {/* Places Section */}
-        <View style={[styles.section, styles.lastSection]}> {/* Apply lastSection style */} 
-          <Text style={styles.subheading}>Nearby Places</Text>
-          {categories.length > 0 ? (
-            categories.map((category) => {
-              const placeNames = places[category];
-              if (!placeNames || placeNames.length === 0) {
-                return null; 
-              }
-              return (
-                <View key={category} style={{ marginBottom: 5, paddingLeft: 5 }} > 
-                  <Text style={styles.categoryTitle}>{capitalize(category)} ({placeNames.length})</Text>
-                  {placeNames.map((place, index) => {
-                    const placeText = typeof place === 'object' && place !== null && place.name ? place.name : place;
-                    const renderText = typeof placeText === 'string' || typeof placeText === 'number' ? placeText : 'Invalid place data';
-                    return (
-                      <Text key={`${category}-${index}`} style={styles.listItem}>- {renderText}</Text>
-                    );
-                  })}
-                </View>
-              );
-            })
-          ) : (
-            <Text style={styles.paragraph}>No specific places data found nearby.</Text>
+          {/* --- Area Summary --- */}
+          {data.transport && (
+            <AreaSummarySectionPdf transport={data.transport} />
           )}
         </View>
-        
-        {/* Add other sections (Transport, Essentials etc.) here later */} 
 
+        {/* Add Footer */}
+        <FooterPdf />
       </Page>
     </Document>
   );
