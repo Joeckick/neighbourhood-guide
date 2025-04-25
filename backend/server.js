@@ -3,6 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const { queryOverpass, parseOverpassResponse } = require('./overpassService');
 const { generateNeighbourhoodSummary } = require('./llmService');
+const { getNearbyTransport } = require('./transportService'); // Import transport service
 
 const app = express();
 const port = process.env.PORT || 3001; // Use environment variable or default
@@ -42,35 +43,46 @@ async function getCoordinatesForPostcode(postcode) {
 // --- Main Guide API Endpoint ---
 app.get('/api/guide/:postcode', async (req, res) => {
   const postcode = req.params.postcode;
-  console.log(`Generating guide for postcode: ${postcode}`);
+  const recipientName = req.query.name || ''; 
+  const interestsString = req.query.interests || '';
+  const interests = interestsString ? interestsString.split(',') : []; 
+  
+  console.log(`Generating guide for postcode: ${postcode}, Name: ${recipientName}, Interests: [${interests.join(', ')}]`);
 
   try {
     // 1. Geocode Postcode
     const { latitude, longitude } = await getCoordinatesForPostcode(postcode);
     console.log(`Coordinates found: ${latitude}, ${longitude}`);
 
-    // 2. Fetch and Parse Overpass Data
-    console.log('Fetching Overpass data...');
-    const overpassRawData = await queryOverpass(latitude, longitude, SEARCH_RADIUS_METERS);
+    // 2. Fetch Data in Parallel (Overpass, Transport, LLM)
+    console.log('Fetching Overpass, Transport, and LLM data in parallel...');
+    
+    const [overpassRawData, transportData, summary] = await Promise.all([
+        queryOverpass(latitude, longitude, SEARCH_RADIUS_METERS), // Fetch Overpass POIs
+        getNearbyTransport(latitude, longitude), // Fetch Transport data
+        generateNeighbourhoodSummary(latitude, longitude, postcode, recipientName, interests) // Generate LLM summary
+    ]);
+
+    // Process Overpass data
     const places = parseOverpassResponse(overpassRawData);
     console.log('Overpass data processed.');
-
-    // 3. Generate LLM Summary
-    console.log('Generating LLM summary...');
-    const summary = await generateNeighbourhoodSummary(latitude, longitude, postcode);
+    console.log('Transport data fetched.'); // Already processed in service
     console.log('LLM summary generated.');
 
-    // 4. Combine and Send Response
+    // 3. Combine and Send Response
     res.json({
       postcode: postcode,
+      recipientName: recipientName, 
+      interests: interests,
       coordinates: { latitude, longitude },
       summary: summary,
-      places: places, // Contains keys like supermarkets, cafes, etc.
+      places: places, 
+      transport: transportData // Add transport data to the response
     });
 
   } catch (error) {
     console.error(`Error generating guide for postcode ${postcode}:`, error.message);
-    const statusCode = error.statusCode || 500; // Use specific status code if available
+    const statusCode = error.statusCode || 500; 
     res.status(statusCode).json({ error: error.message || 'Failed to generate neighbourhood guide' });
   }
 });

@@ -1,12 +1,53 @@
-# React + Vite
+# Neighbourhood Guide App - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend application for the Neighbourhood Guide, built with React and Vite.
 
-Currently, two official plugins are available:
+It allows users to enter a UK postcode and view information about the area, including a map, an AI-generated summary, and nearby points of interest (fetched from the project's backend service).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Project Structure
 
-## Expanding the ESLint configuration
+- `src/`: Main source code directory.
+  - `components/`: Reusable React components (e.g., `PostcodeForm`, `MapDisplay`, `PlacesList`, `ResultsDisplay`).
+  - `hooks/`: Custom React hooks (e.g., `useGuideApi` for backend communication).
+  - `App.jsx`: Main application component.
+  - `main.jsx`: Entry point for the React application.
+- `public/`: Static assets.
+- `vite.config.js`: Vite configuration (including proxy setup for the backend).
+- `package.json`: Project dependencies and scripts.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Prerequisites
+
+- Node.js (v18 or later recommended)
+- npm or yarn
+- The [Neighbourhood Guide Backend](../backend/README.md) service running (typically on `http://localhost:3001`).
+
+## Setup
+
+1.  Navigate to the `frontend` directory:
+    ```bash
+    cd frontend
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    # or
+    # yarn install
+    ```
+
+## Running the Development Server
+
+1.  Make sure the backend server is running.
+2.  Start the Vite development server:
+    ```bash
+    npm run dev
+    # or
+    # yarn dev
+    ```
+3.  Open your browser and navigate to `http://localhost:5173` (or the port specified by Vite).
+
+## Available Scripts
+
+- `npm run dev`: Starts the development server with Hot Module Replacement (HMR).
+- `npm run build`: Builds the application for production.
+- `npm run lint`: Lints the codebase using ESLint.
+- `npm run preview`: Serves the production build locally for preview.
